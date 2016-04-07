@@ -8,7 +8,7 @@ do
   for s in ${sparsity[@]}
   do
     echo "generating sci sparse matrix dimension: $d x $d with density: $s"
-    time scala -DXmx8g -cp scidb/RandomMatrix/target/scala-2.10/randommatrix_2.10-1.0.jar RandomSpMat $d $d $s ../sci-$d-$d-$s
+    time scala -DXmx8g -cp scidb/RandomMatrix/target/scala-2.10/randommatrix_2.10-1.0.jar RandomSpMat $d $d $s ../sci-mats/sci-$d-$d-$s
     sleep 8
   done
 done
