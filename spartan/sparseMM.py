@@ -1,4 +1,3 @@
-#!/usr/bin/python
 import time
 import spartan as sp
 
