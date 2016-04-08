@@ -1,0 +1,37 @@
+# Spoiler alert: matrix() is a built-in function to
+# create matrix, which will be discussed later
+
+r = 8100000
+
+W = rand(rows=784, cols=300, min=0.0, max=1.0, pdf="uniform", sparsity=1.0)
+V = rand(rows=300, cols=10,  min=0.0, max=1.0, pdf="uniform", sparsity=1.0)
+loc="/data/ml-iter225/"
+write(W, loc + "W", format = "text")
+write(V, loc + "V", format = "text")
+
+data = read("/data/mnist8m-ml.scale", rows=r, cols=784, format="text")
+labels = read("/data/mnist8m-label", format="text")
+fra = 0.01
+learningRate = 0.1
+batchSize = fra * r
+iterations = 225
+range = sample(r - batchSize, iterations, TRUE)
+
+for (i in 1:iterations) {
+    print("iteration: " + i)
+    index = as.scalar(range[i, 1])
+    input = data[index: index + batchSize - 1,]
+    label = labels[index: index + batchSize - 1,]
+    wIn = input %*% W
+    wTemp = exp(-wIn)
+    wOut = 1/(1 + wTemp)
+    vIn = wOut %*% V
+    vTemp = exp(-vIn)
+    vOut = 1/(1 + vTemp)
+    vDelta = vTemp/(1+vTemp)^2 * (vOut - label) 
+    wDelta = wTemp/(1+wTemp)^2 * (vDelta %*% t(V))
+    V = V - learningRate * t(wOut) %*% vDelta / batchSize   
+    W = W - learningRate * t(input) %*% wDelta / batchSize
+}
+write(W, loc + "W-2", format = "text")
+write(V, loc + "V-2", format = "text")
