@@ -4,12 +4,17 @@ import spartan as sp
 import sys
 from datetime import datetime
 
+#argvLen = len(sys.argv);
+#print "total fileds in sys.argv=",argvLen;
+     
+#for i,eachArg in enumerate(sys.argv):
+#  print "[%d]=%s"%(i, eachArg);
+
+m = int(sys.argv[1])
+k = int(sys.argv[2])
+n = int(sys.argv[3])
+
 sp.initialize()
-
-m = sys.argv[1]
-k = sys.argv[2]
-n = sys.argv[3]
-
 print "execute matrix multiplication, m: %d, k: %d, n: %d. date: %s\n"%(m, k , n, datetime.now())
 
 a = sp.rand(m, k)
