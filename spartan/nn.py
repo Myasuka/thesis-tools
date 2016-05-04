@@ -28,7 +28,7 @@ def _split_sample(merged_mb):
   l = np.random.randint(10, size=r)
   ll = np.zeros([r, 10])
   ll[range(r), l.astype(int).flat] = 1
-  return (sp.from_numpy(s).evaluate(), sp.from_numpy(ll))
+  return (sp.from_numpy(s).evaluate(), sp.from_numpy(ll).evaluate())
 
 def main():
     sp.initialize()
@@ -37,13 +37,15 @@ def main():
     l2 = 300
     l3 = 10
 
-    W = (sp.randn(l1, l2) * math.sqrt(4.0 / (l1 + l2))).evaluate() # 784 * 300 matrix
-    V = (sp.randn(l2, l3) * math.sqrt(4.0 / (l2 + l3))).evaluate() # 300 * 10 matrix
+    # W = (sp.randn(l1, l2) * math.sqrt(4.0 / (l1 + l2))).evaluate() # 784 * 300 matrix
+    W = (sp.randn(l2, l1) * math.sqrt(4.0 / (l1 + l2))).evaluate() # 300 * 784 matrix
+    # V = (sp.randn(l2, l3) * math.sqrt(4.0 / (l2 + l3))).evaluate() # 300 * 10 matrix
+    V = (sp.randn(l3, l2) * math.sqrt(4.0 / (l2 + l3))).evaluate() # 10 * 300 matrix
     print "V:", V.glom()
     print "W:", W.glom()
 
     # generate distributed matrix
-    rows = 8100000
+    rows = 81000
     cols = 784
     num_workers = 100
     subrow = rows / num_workers
@@ -77,32 +79,42 @@ def main():
     for (mb_samples, mb_labels) in train_data:
         begin = time.time()
         num_samples = mb_samples.shape[0]
-        input = mb_samples      # sample * 784 matrix
+        # input = mb_samples      # sample * 784 matrix
+        input = mb_samples.T      # 784 * sample matrix
         # if count > 20 or count == 0:
         #    print "input data:", input.glom()
-        label = mb_labels   # sample * 10 matrix
+        # label = mb_labels   # sample * 10 matrix
+        label = mb_labels.T   # 10 * sample matrix
 
         # ff
         ffs = time.time()
-        wIn = sp.dot(input, W)  # sample * 300 matrix
+        # wIn = sp.dot(input, W)  # sample * 300 matrix
+        wIn = sp.dot(W, input)  # 300 * sample matrix
         wOut = sigmoid(wIn)
-        vIn = sp.dot(wOut, V)  # sample * 10 matrix
+        print "V", V
+        # vIn = sp.dot(wOut, V)  # sample * 10 matrix
+        vIn = sp.dot(V, wOut)  # 10 * sample matrix
         vOut = sigmoid(vIn)
+        print "W.shape:%s, input shape:%s, V.shpae:%s, wOut.shpae:%s"%(str(W.shape), str(input.shape), str(V.shape), str(wOut.shape))
         vOut.evaluate()
         ffe = time.time()
         #bp
         bps = time.time()
-        o = vOut - label
+        # o = vOut - label
         # if count > 20 or count == 0:
         #     print "vOut - label", o.glom()
-        vDelta = dsigmoid(vIn) * o         # sample * 10 matrix
-        wDelta = dsigmoid(wIn) * (sp.dot(vDelta, V.T))  # sample * 300 matrix
-        wDelta.evaluate()
+        # vDelta = dsigmoid(vIn) * o         # sample * 10 matrix
+        vDelta = dsigmoid(vIn) * (vOut - label)         # 10 * sample matrix
+        # wDelta = dsigmoid(wIn) * (sp.dot(vDelta, V.T))  # sample * 300 matrix
+        wDelta = dsigmoid(wIn) * (sp.dot(V.T, vDelta))  # 300 * sample matrix
+        # wDelta.evaluate()
         bpe = time.time()
         # update
         upb = time.time()
-        V -= eps_w * sp.dot(wOut.T, vDelta) / num_samples  # 256 * 10 matrix
-        W -= eps_w * sp.dot(input.T, wDelta) / num_samples # 784 * 300 matrix
+        # V -= eps_w * sp.dot(wOut.T, vDelta) / num_samples  # 300 * 10 matrix
+        V -= eps_w * sp.dot(vDelta, wOut.T) / num_samples  # 10 * 300 matrix
+        # W -= eps_w * sp.dot(input.T, wDelta) / num_samples # 784 * 300 matrix
+        W -= eps_w * sp.dot(wDelta, input.T) / num_samples # 300 * 784  matrix
 
         V.evaluate()
         W.evaluate()
